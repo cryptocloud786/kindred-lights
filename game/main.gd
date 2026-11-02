@@ -78,6 +78,7 @@ var scatter_stream: AudioStream
 var shot_dir := ""
 var shot_plan: Array = []
 var force_hum := false
+var shot_skip := false
 var autoplay := false
 var bot_log_t := 0.0
 
@@ -779,10 +780,14 @@ func _parse_args() -> void:
 	for a in args:
 		if a.begins_with("--shots="):
 			shot_dir = a.substr(8)
+		if a == "--cover-only":
+			shot_skip = true
 		if a == "--autoplay":
 			autoplay = true
 			_start_play()
-	if shot_dir != "":
+	if shot_dir != "" and shot_skip:
+		shot_plan = [{"at": 1.0, "do": "cover"}, {"at": 4.5, "name": "07_cover"}, {"at": 5.0, "do": "quit"}]
+	elif shot_dir != "":
 		# scripted tour for the itch.io page screenshots
 		shot_plan = [
 			{"at": 1.5, "name": "01_title"},
@@ -796,7 +801,9 @@ func _parse_args() -> void:
 			{"at": 20.0, "name": "05_wind"},
 			{"at": 20.5, "do": "scene_ending"},
 			{"at": 38.0, "name": "06_rise"},
-			{"at": 39.0, "do": "quit"},
+			{"at": 38.5, "do": "cover"},
+			{"at": 42.0, "name": "07_cover"},
+			{"at": 42.5, "do": "quit"},
 		]
 
 
@@ -847,6 +854,17 @@ func _shots(delta: float) -> void:
 			p_pos = Vector2(0, -5900); cam.position = p_pos; trail.clear(); world_warm = 1.2
 			_start_ending(); ending_t = 30.0; started_theme = true
 			hint_queue.clear(); hint_dur = 0.0
+		"cover":
+			mode = CREDITS
+			credits_t = -1000.0
+			theme_player.stop()
+			for b in beacons:
+				b.lit = true; b.glow = 1.0
+			p_pos = Vector2(-200, -4700); cam.zoom = Vector2.ONE; cam.position = p_pos + Vector2(0, -170)
+			world_warm = 0.8; warm_target = 0.8; trail.clear(); sparkles.clear()
+			for w in wisps:
+				w.state = 2; w.pos = p_pos + Vector2(randf_range(-300, 300), randf_range(-150, 150))
+			title_box.visible = true; title_box.modulate.a = 1.0; title_press.visible = false
 		"quit":
 			get_tree().quit()
 
